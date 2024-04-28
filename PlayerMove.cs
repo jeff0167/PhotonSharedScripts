@@ -7,17 +7,22 @@ using UnityEngine;
 public class PlayerMove : NetworkBehaviour
 {
     float h, v;
+    bool isDead = false;
 
-    public int hp;
+    [Networked, OnChangedRender(nameof(HealthChanged))]
+    public float Networked_hp { get; set; }
 
-    [Networked, OnChangedRender(nameof(OnAttack))]
-    public string NetWorked_youWon { get; set; }
     public TextMeshProUGUI youWon { get; set; }
 
     void Start()
     {
         youWon = GameObject.FindGameObjectWithTag("Win").GetComponent<TextMeshProUGUI>();
         if (!HasStateAuthority) return;
+    }
+
+    void HealthChanged()
+    {
+        Debug.Log($"Health changed to: {Networked_hp}");
     }
 
     public override void FixedUpdateNetwork()
@@ -33,31 +38,29 @@ public class PlayerMove : NetworkBehaviour
         }
     }
 
-    public void OnAttack()
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    public void OnAttackRpc()
     {
-        hp--;
-        Debug.Log("Hit opponent");
-        if (hp <= 0)
+        if(isDead) return;
+        Networked_hp--;
+        if (Networked_hp <= 0)
         {
-            hp = 0;
+            Networked_hp = 0;
+            isDead = true;
+            ShowWinTextRpc();
+        }
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.All)]
+    void ShowWinTextRpc() // not ideal
+    {
+        if (HasStateAuthority)
+        {
+            youWon.text = "You Lose"; // if I call myself it means I lost
+        }
+        else
+        {
             youWon.text = "You won";
-            Debug.Log("You won");
         }
     }
-
-    void ShowWinText()
-    {
-        if(NetWorked_youWon == "You won")
-        {
-            youWon.text = "You Lose";
-        }
-    }
-
-    //private void OnMouseDown()
-    //{
-    //    if (!HasStateAuthority)
-    //    {
-    //        OnAttack();
-    //    }
-    //}
 }

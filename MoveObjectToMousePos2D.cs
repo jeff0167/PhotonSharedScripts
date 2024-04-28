@@ -13,9 +13,18 @@ public class MoveObjectToMousePos2D : NetworkBehaviour
     bool isMoving = false;
     Vector3 targetPos;
 
+    bool MouseClick = false;
+
     private void Start()
     {
         gameObject.tag = !HasStateAuthority ? "Enemy" : "Player"; // if not client then they have tag enemy, when client we have the tag player
+    }
+
+    private void Update()
+    {
+        if (!HasStateAuthority) return;
+
+        if (Input.GetKeyDown(KeyCode.Mouse0)) MouseClick = true;
     }
 
     public override void FixedUpdateNetwork()
@@ -24,7 +33,7 @@ public class MoveObjectToMousePos2D : NetworkBehaviour
 
         if (Movement <= 0) return;
 
-        if (Input.GetKey(KeyCode.Mouse0)) // don't move if clicking on enemy
+        if (MouseClick) // don't move if clicking on enemy
         {
             Vector2 pos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 
@@ -40,6 +49,7 @@ public class MoveObjectToMousePos2D : NetworkBehaviour
                 isMoving = true;
             }
             //transform.position = new Vector3(pos.x, pos.y, 0);
+            MouseClick = false;
         }
 
         if (isMoving) CheckIfShouldMove();
@@ -60,7 +70,7 @@ public class MoveObjectToMousePos2D : NetworkBehaviour
     {
         RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition), Vector2.zero);
         bool hitEnemy = hit.collider != null && hit.collider.gameObject.tag == "Enemy";
-        if (hitEnemy) hit.collider.gameObject.GetComponent<PlayerMove>().OnAttack();
+        if (hitEnemy) hit.collider.gameObject.GetComponent<PlayerMove>().OnAttackRpc();
 
         return hitEnemy;
     }
